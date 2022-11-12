@@ -1,0 +1,3 @@
+#!/bin/sh
+# IMPORTANT: https://discourse.nixos.org/t/issues-with-nix-reproducibility-on-macos-trying-to-build-nokogiri-ruby-error-unknown-warning-option/22019/7
+nix-shell ./nix/bundler.nix --run "BUNDLE_FORCE_RUBY_PLATFORM=true bundler lock $1 && bundix --gemset=./nix/gemset.nix" && rm -rf vendor/bundle

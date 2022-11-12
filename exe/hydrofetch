@@ -1,3 +1,5 @@
 #!/usr/bin/env ruby
 
-require "hydrofetch"
+require_relative "../lib/hydrofetch"
+
+Hydrofetch::Scraper.new.run!
