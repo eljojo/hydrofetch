@@ -13,10 +13,5 @@ gem "rubocop", "~> 1.21"
 
 gem "pry"
 
-gem "activesupport"
-gem "nokogiri"
-gem "capybara"
-gem "selenium-webdriver"
-gem "selenium-devtools"
-gem "webdrivers"
+# gem "activesupport"
 

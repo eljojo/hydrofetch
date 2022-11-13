@@ -19,7 +19,7 @@ let
   };
 
 in pkgs.mkShell {
-  buildInputs = [ env (lowPrio env.wrappedRuby) google-chrome chromedriver ];
+  buildInputs = [ env (lowPrio env.wrappedRuby) ];
 
   BUNDLE_FORCE_RUBY_PLATFORM = true;
 }
