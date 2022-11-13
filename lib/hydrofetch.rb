@@ -22,7 +22,7 @@ USERAGENT = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.1
 ::Selenium::WebDriver::Chrome.path = %x(which google-chrome-stable).strip if ENV["APP_ENV"] == "production"
 
 Capybara.register_driver :headless_chrome  do |app|
-  options = Selenium::WebDriver::Chrome::Options.new(args: %w[headless no-sandbox disable-gpu])
+  options = Selenium::WebDriver::Chrome::Options.new(args: %w[headless no-sandbox disable-gpu disable-dev-shm-usage verbose])
   Capybara::Selenium::Driver.new(app, browser: :chrome, options: options)
 end
 
@@ -71,6 +71,7 @@ module Hydrofetch
     HYDRO_COOKIE_NAMES = ["hydroottawa_account", "XSRF-TOKEN"]
     def login
       logger.info "logging into hydroottawa.com"
+      raise("empty username or password") unless @username && @password
       browser = Capybara.current_session
       browser.visit "https://account.hydroottawa.com/login"
       if browser.title =~ /Service Unavailable/
@@ -93,6 +94,9 @@ module Hydrofetch
       end
 
       cookies
+    rescue => e
+      logger.debug Capybara.current_session.html
+      raise(e)
     end
 
     def get_api_session_token(cookies)

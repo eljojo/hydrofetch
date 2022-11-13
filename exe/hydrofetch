@@ -4,7 +4,7 @@ require_relative "../lib/hydrofetch"
 
 require 'sinatra/base'
 
-scraper = Hydrofetch::Scraper.new(ENV["HYDRO_USER"], ENV["HYDRO_PASS"])
+$scraper = Hydrofetch::Scraper.new(ENV["HYDRO_USER"], ENV["HYDRO_PASS"])
 
 class HydrofetchWeb < Sinatra::Base
   access_logger = ::Logger.new($stdout)
@@ -14,20 +14,21 @@ class HydrofetchWeb < Sinatra::Base
   end
 
   before {
-    env["rack.errors"] =  access_logger
+    env["rack.errors"] =  $stdout
     content_type 'application/json'
   }
 
   get('/') do
-    JSON.pretty_generate(scraper.one_day_ago)
+    JSON.pretty_generate($scraper.one_day_ago)
   end
 
   get('/report') do
-    JSON.pretty_generate(scraper.report)
+    JSON.pretty_generate($scraper.report)
   end
 end
-if ENV["APP_ENV"] == "production"
-  HydrofetchWeb.run!(port: 8080) if HydrofetchWeb.app_file == $0
+
+if ARGV[0] == "server"
+  HydrofetchWeb.run!(port: 8080)
 else
-  puts JSON.pretty_generate(scraper.one_day_ago)
+  puts JSON.pretty_generate($scraper.one_day_ago)
 end

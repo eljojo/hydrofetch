@@ -41,7 +41,7 @@
           name = "hydrofetch-${self.shortRev or "dirty"}";
 
           nativeBuildInputs = [ rubyEnv ];
-          propagatedBuildInputs = [ pkgs.google-chrome pkgs.chromedriver ];
+          propagatedBuildInputs = [ ];
 
           src = builtins.path {
             filter = path: type: type != "directory" || baseNameOf path != "archive";
@@ -54,34 +54,86 @@
           installPhase = ''
             mkdir -p $out/{bin,share/hydrofetch}
             cp -r * $out/share/hydrofetch
+
             bin=$out/bin/hydrofetch
-            # we are using bundle exec to start in the bundled environment
             cat > $bin <<EOF
 #!/bin/sh -e
 exec ${rubyEnv}/bin/bundle exec $out/share/hydrofetch/exe/hydrofetch "\$@"
 EOF
             chmod +x $bin
+
+            debugbin=$out/bin/dev
+            cat > $debugbin <<EOF
+#!/bin/sh -e
+exec ${rubyEnv}/bin/bundle exec ${ruby}/bin/irb -I $out/share/hydrofetch/lib -r hydrofetch
+EOF
+            chmod +x $debugbin
           '';
         };
 
         hydrofetch = buildGem { };
-        buildImage =
-          let
-            hydrofetch = buildGem { };
-          in
-          pkgs.dockerTools.buildLayeredImage
-            {
-              name = "hydrofetch";
-              tag = revision;
-              config = {
-                Cmd = [
-                  "${hydrofetch}/bin/hydrofetch"
-                ];
-                ExposedPorts = {
-                  "8080/tcp" = { };
-                };
-              };
+        # buildChromeBase = pkgs.dockerTools.buildImage {
+        #   name = "chromebase";
+        #   tag = revision;
+        #   copyToRoot = pkgs.buildEnv {
+        #     name = "image-root";
+        #     pathsToLink = [ "/bin" ];
+        #     paths = with pkgs.dockerTools; [
+        #       pkgs.google-chrome
+        #       pkgs.chromedriver
+        #       pkgs.dockerTools.caCertificates
+        #     ];
+        #   };
+        #   config = {
+        #     Env = [
+        #       "DISPLAY=:99.0"
+        #       "SE_BIND_HOST=false"
+        #       "DBUS_SESSION_BUS_ADDRESS=/dev/null"
+        #     ];
+        #   };
+        #   extraCommands = ''
+        #     mkdir -p dev/shm
+        #     chmod +x dev/shm
+        #   '';
+        # };
+        chromeBaseImage = pkgs.dockerTools.pullImage {
+          imageName = "selenium/standalone-chrome";
+          imageDigest = "sha256:2e1f59fb711ba42fb68a6c8ee1820eb955d11e8da7db05c318b175650d5ec572";
+          finalImageName = "standalone-chrome";
+          finalImageTag = "107.0";
+          sha256 = "sha256-aIamKtmPKanU4VefCwzqMrUnaOEFS0v4BW6aojJPem0=";
+          os = "linux";
+          arch = "x86_64";
+        };
+        hydrofetchDockerImage = pkgs.dockerTools.buildImage {
+          name = "hydrofetch";
+          tag = revision;
+          # fromImage = buildChromeBase;
+          fromImage = chromeBaseImage;
+          copyToRoot = pkgs.buildEnv {
+            name = "image-root";
+            pathsToLink = [ "/bin" ];
+            paths = with pkgs.dockerTools; [
+              pkgs.which
+              pkgs.bashInteractive
+              pkgs.coreutils
+              rubyEnv
+              hydrofetch
+            ];
+          };
+          config = {
+            Cmd = [
+              "/bin/hydrofetch"
+              "server"
+            ];
+            ExposedPorts = {
+              "8080/tcp" = { };
             };
+          };
+          extraCommands = ''
+            mkdir -p tmp
+          '';
+        };
       in
       {
 
@@ -92,9 +144,9 @@ EOF
         };
 
         packages = {
-          ociImage = buildImage;
+          ociImage = hydrofetchDockerImage;
           # default = rubyEnv;
-          default = buildGem { };
+          default = hydrofetch;
         };
       });
 }
