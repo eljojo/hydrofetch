@@ -13,5 +13,5 @@ gem "rubocop", "~> 1.21"
 
 gem "pry"
 
-# gem "activesupport"
+gem "activesupport"
 
