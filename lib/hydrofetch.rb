@@ -5,6 +5,11 @@ require_relative "hydrofetch/version"
 require "active_support"
 require "active_support/core_ext/date_time"
 
+# require 'webdrivers'
+# require 'webdrivers/chromedriver'
+require 'selenium-webdriver'
+require 'nokogiri'
+
 require 'json'
 require 'pry'
 require 'logger'
@@ -15,13 +20,22 @@ require 'cgi'
 
 USERAGENT = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.1 Safari/605.1.15'
 
+::Selenium::WebDriver::Chrome::Service.driver_path = %x(which chromedriver).strip
+::Selenium::WebDriver::Chrome.path = %x(which google-chrome-stable).strip if ENV["APP_ENV"] == "production"
+
 module Hydrofetch
   class Error < StandardError; end
   class Scraper
-    def initialize(sso_token)
-      @logger = ::Logger.new($stdout, ::Logger::INFO)
+    attr_reader :driver, :logger
 
-      @sso_token = login_to_hydro("", "")
+    def initialize(username, password)
+      @logger = ::Logger.new($stdout, ::Logger::DEBUG)
+      setup_browser!
+
+      @username = username, @password = password
+      login
+
+      #@sso_token = login_to_hydro(username, password)
       #@session_token = login_to_bidgely || raise("Couldn't fetch Session Tokens")
     end
 
@@ -30,6 +44,40 @@ module Hydrofetch
 
       @last_report_expires = DateTime.now.end_of_day
       @last_report = fetch_usage_report || raise("couldn't fetch report!")
+    end
+
+    def setup_browser!
+      options = Selenium::WebDriver::Chrome::Options.new(args: %w[headless no-sandbox disable-gpu])
+      @driver = Selenium::WebDriver.for :chrome, options: options
+    end
+
+    def login(username = @username, password = @password)
+      logger.info "logging in"
+      driver.navigate.to "https://account.hydroottawa.com/login"
+      if driver.title =~ /Service Unavailable/
+        logger.warn("Hydro is down for maintenance")
+        return
+      end
+
+      driver.find_element(id: 'btnLRLogin').click
+      driver.find_element(id: 'loginradius-login-emailid').set(username)
+      driver.find_element(id: 'loginradius-login-password').set(password)
+      driver.find_element(id: 'loginradius-submit-login').native.send_keys(:return)
+      wait
+      logger.info "handing over to bidgely"
+      driver.navigate.to("https://account.hydroottawa.com/account/usage")
+      driver.navigate.to('#cons-breakdown-title')
+      wait
+    end
+
+    def wait(extra: false)
+      loop do
+        puts driver.title
+        sleep(2)
+        if driver.execute_script('return document.readyState') == "complete"
+          break
+        end
+      end
     end
 
     private
@@ -52,8 +100,20 @@ module Hydrofetch
       uri = URI('https://account.hydroottawa.com/login')
       req = Net::HTTP::Get.new(uri, { 'User-Agent' => USERAGENT })
       res = Net::HTTP.start(uri.hostname, uri.port, :use_ssl => true ) { |http| http.request(req) }
+
+      if res.is_a?(Net::HTTPFound) && res["location"] =~ /maintenance/
+        @logger.warn("Hydro is under maintenance")
+        return
+      end
+
+      unless res.is_a?(Net::HTTPOK)
+        @logger.warn("unexpected response when logging into HydroOttawa: #{res}")
+        return
+      end
+
+      @logger.debug res.to_hash
       cookies = res.to_hash["set-cookie"].map { |cookie| cookie.split(";",2).first }.join("; ")
-      cookies = ""
+      @logger.debug(cookies)
 
       @logger.info("logging in to hydro using loginradius token")
       uri = URI('https://account.hydroottawa.com/ajax/authenticator')
@@ -66,11 +126,11 @@ module Hydrofetch
         expires: loginradius_data.fetch("expires_in"),
         profile: loginradius_data.fetch("Profile")
       }
+      @logger.debug(formdata)
       req.form_data = formdata
-      #pp(formdata)
       res = Net::HTTP.start(uri.hostname, uri.port, :use_ssl => true ) { |http| http.request(req) }
       cookies = res.to_hash["set-cookie"].map { |cookie| cookie.split(";", 2).first }.join("; ")
-      puts cookies
+      @logger.debug(cookies)
 
       unless res.is_a?(Net::HTTPOK)
         @logger.warn("unexpected response when logging into HydroOttawa: #{res}")
@@ -119,6 +179,7 @@ module Hydrofetch
     end
 
     def fetch_usage_report(tokens = @session_token)
+      return {hehe: true}
       uuid, token = tokens
       @logger.info("fetching report")
       uri = URI(report_url(uuid, token))

@@ -13,7 +13,11 @@
       let
         revision = "${self.lastModifiedDate}-${self.shortRev or "dirty"}";
 
-        pkgs = nixpkgs.legacyPackages.${system};
+        # pkgs = nixpkgs.legacyPackages.${system};
+        pkgs = import nixpkgs {
+          inherit system;
+          config.allowUnfree = true;
+        };
 
         ruby = pkgs.ruby_3_1;
 
@@ -37,6 +41,7 @@
           name = "hydrofetch-${self.shortRev or "dirty"}";
 
           nativeBuildInputs = [ rubyEnv ];
+          propagatedBuildInputs = [ pkgs.google-chrome pkgs.chromedriver ];
 
           src = builtins.path {
             filter = path: type: type != "directory" || baseNameOf path != "archive";
@@ -82,7 +87,7 @@ EOF
 
         devShells.default = with pkgs; mkShell {
           buildInputs = [
-            rubyEnv (lowPrio rubyEnv.wrappedRuby) skopeo #hydrofetch
+            rubyEnv (lowPrio rubyEnv.wrappedRuby) skopeo pkgs.chromedriver # hydrofetch
           ];
         };
 

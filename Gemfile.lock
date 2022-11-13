@@ -6,24 +6,39 @@ GEM
       i18n (>= 1.6, < 2)
       minitest (>= 5.1)
       tzinfo (~> 2.0)
+    childprocess (4.1.0)
     coderay (1.1.3)
     concurrent-ruby (1.1.10)
     i18n (1.12.0)
       concurrent-ruby (~> 1.0)
     method_source (1.0.0)
+    mini_portile2 (2.8.0)
     minitest (5.16.3)
     mustermann (3.0.0)
       ruby2_keywords (~> 0.0.1)
     nio4r (2.5.8)
+    nokogiri (1.13.9)
+      mini_portile2 (~> 2.8.0)
+      racc (~> 1.4)
     pry (0.14.1)
       coderay (~> 1.1)
       method_source (~> 1.0)
     puma (6.0.0)
       nio4r (~> 2.0)
+    racc (1.6.0)
     rack (2.2.4)
     rack-protection (3.0.3)
       rack
+    rexml (3.2.5)
     ruby2_keywords (0.0.5)
+    rubyzip (2.3.2)
+    selenium-devtools (0.107.0)
+      selenium-webdriver (~> 4.2)
+    selenium-webdriver (4.6.1)
+      childprocess (>= 0.5, < 5.0)
+      rexml (~> 3.2, >= 3.2.5)
+      rubyzip (>= 1.2.2, < 3.0)
+      websocket (~> 1.0)
     sinatra (3.0.3)
       mustermann (~> 3.0)
       rack (~> 2.2, >= 2.2.4)
@@ -32,15 +47,24 @@ GEM
     tilt (2.0.11)
     tzinfo (2.0.5)
       concurrent-ruby (~> 1.0)
+    webdrivers (5.2.0)
+      nokogiri (~> 1.6)
+      rubyzip (>= 1.3.0)
+      selenium-webdriver (~> 4.0)
+    websocket (1.2.9)
 
 PLATFORMS
   ruby
 
 DEPENDENCIES
   activesupport
+  nokogiri
   pry
   puma
+  selenium-devtools
+  selenium-webdriver
   sinatra
+  webdrivers
 
 BUNDLED WITH
    2.3.23

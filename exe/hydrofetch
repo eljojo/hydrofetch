@@ -4,6 +4,8 @@ require_relative "../lib/hydrofetch"
 
 require 'sinatra/base'
 
+scraper = Hydrofetch::Scraper.new(ENV["HYDRO_USER"], ENV["HYDRO_PASS"])
+
 class HydrofetchWeb < Sinatra::Base
   access_logger = ::Logger.new($stdout)
 
@@ -16,9 +18,11 @@ class HydrofetchWeb < Sinatra::Base
   }
 
   get('/') do
-    # pp(Hydrofetch::Scraper.new(token).report)
-    'hello world'
+    JSON.pretty_generate(scraper.report)
   end
-
 end
-HydrofetchWeb.run!(port: 8080) if HydrofetchWeb.app_file == $0
+if ENV["APP_ENV"] == "production"
+  HydrofetchWeb.run!(port: 8080) if HydrofetchWeb.app_file == $0
+else
+  puts JSON.pretty_generate(scraper.report)
+end

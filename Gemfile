@@ -9,9 +9,13 @@ source "https://rubygems.org"
 # gem "minitest", "~> 5.0"
 # gem "rubocop", "~> 1.21"
 
-gem "pry"
-
 gem "activesupport"
+gem "nokogiri"
+gem "selenium-webdriver"
+gem "selenium-devtools"
+gem "webdrivers"
+
+gem "pry"
 
 gem "sinatra"
 gem "puma"
