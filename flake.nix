@@ -1,7 +1,7 @@
 {
   description = "The contents of https://thewagner.net";
 
-  inputs.nixpkgs.url = "nixpkgs/nixos-21.11";
+  inputs.nixpkgs.url = "nixpkgs/nixos-unstable";
   inputs.flake-utils.url = "github:numtide/flake-utils";
   inputs.flake-compat = {
     url = github:edolstra/flake-compat;
@@ -15,7 +15,7 @@
 
         pkgs = nixpkgs.legacyPackages.${system};
 
-        ruby = pkgs.ruby_3_0;
+        ruby = pkgs.ruby_3_1;
 
         rubyEnv = pkgs.bundlerEnv {
           name = "hydro-bundler-env";
@@ -53,15 +53,15 @@
             # we are using bundle exec to start in the bundled environment
             cat > $bin <<EOF
 #!/bin/sh -e
-exec ${rubyEnv}/bin/bundle exec ${rubyEnv}/bin/ruby $out/share/exe/hydrofetch "\$@"
+exec ${rubyEnv}/bin/bundle exec $out/share/hydrofetch/exe/hydrofetch "\$@"
 EOF
             chmod +x $bin
           '';
         };
 
+        hydrofetch = buildGem { };
         buildImage =
           let
-            port = "8000";
             hydrofetch = buildGem { };
           in
           pkgs.dockerTools.buildLayeredImage
@@ -71,11 +71,9 @@ EOF
               config = {
                 Cmd = [
                   "${hydrofetch}/bin/hydrofetch"
-                  "--port"
-                  port
                 ];
                 ExposedPorts = {
-                  "${port}/tcp" = { };
+                  "8080/tcp" = { };
                 };
               };
             };
@@ -84,7 +82,7 @@ EOF
 
         devShells.default = with pkgs; mkShell {
           buildInputs = [
-            rubyEnv (lowPrio rubyEnv.wrappedRuby) skopeo
+            rubyEnv (lowPrio rubyEnv.wrappedRuby) skopeo #hydrofetch
           ];
         };
 

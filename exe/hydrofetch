@@ -2,4 +2,23 @@
 
 require_relative "../lib/hydrofetch"
 
-pp(Hydrofetch::Scraper.new(token).report)
+require 'sinatra/base'
+
+class HydrofetchWeb < Sinatra::Base
+  access_logger = ::Logger.new($stdout)
+
+  configure do
+    use ::Rack::CommonLogger, access_logger
+  end
+
+  before {
+    env["rack.errors"] =  access_logger
+  }
+
+  get('/') do
+    # pp(Hydrofetch::Scraper.new(token).report)
+    'hello world'
+  end
+
+end
+HydrofetchWeb.run!(port: 8080) if HydrofetchWeb.app_file == $0
