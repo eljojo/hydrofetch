@@ -2,4 +2,4 @@
 
 require_relative "../lib/hydrofetch"
 
-Hydrofetch::Scraper.new(token).run!
+pp(Hydrofetch::Scraper.new(token).report)

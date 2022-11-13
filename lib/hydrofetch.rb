@@ -19,24 +19,85 @@ module Hydrofetch
   class Error < StandardError; end
   class Scraper
     def initialize(sso_token)
-      @sso_token = sso_token
       @logger = ::Logger.new($stdout, ::Logger::INFO)
-      @session_token = login || raise("Couldn't fetch Session Tokens")
+
+      @sso_token = login_to_hydro("", "")
+      #@session_token = login_to_bidgely || raise("Couldn't fetch Session Tokens")
     end
 
     def report
       return @last_report if @last_report && @last_report_expires > Time.now
 
-      @last_report = fetch_usage_report || (sleep(5) && login && fetch_usage_report) || raise("couldn't fetch report!")
       @last_report_expires = DateTime.now.end_of_day
-      @last_report
+      @last_report = fetch_usage_report || raise("couldn't fetch report!")
     end
 
     private
 
-    def login(sso_token = @sso_token)
+    def login_to_hydro(username, password)
+      @logger.info("logging in to loginradius using username/password")
+      uri = URI(loginradius_url)
+      req = Net::HTTP::Post.new(uri, { 'User-Agent' => USERAGENT, 'Content-Type' => 'application/json' })
+      req.body = {"password": password, "email": username }.to_json
+      res = Net::HTTP.start(uri.hostname, uri.port, :use_ssl => true ) { |http| http.request(req) }
+
+      unless res.is_a?(Net::HTTPOK)
+        @logger.warn("unexpected response when logging into loginradius: #{res}")
+        return
+      end
+
+      loginradius_data = JSON.parse(res.body)
+
+      @logger.info("fetching hydro session cookies")
+      uri = URI('https://account.hydroottawa.com/login')
+      req = Net::HTTP::Get.new(uri, { 'User-Agent' => USERAGENT })
+      res = Net::HTTP.start(uri.hostname, uri.port, :use_ssl => true ) { |http| http.request(req) }
+      cookies = res.to_hash["set-cookie"].map { |cookie| cookie.split(";",2).first }.join("; ")
+      cookies = ""
+
+      @logger.info("logging in to hydro using loginradius token")
+      uri = URI('https://account.hydroottawa.com/ajax/authenticator')
+      req = Net::HTTP::Post.new(uri, { 'User-Agent' => USERAGENT, 'Cookie' => cookies })
+      profile = loginradius_data.fetch("Profile")
+      formdata = {
+        source: 'login',
+        uid: profile.fetch("Uid"),
+        token: loginradius_data.fetch("access_token"),
+        expires: loginradius_data.fetch("expires_in"),
+        profile: loginradius_data.fetch("Profile")
+      }
+      req.form_data = formdata
+      #pp(formdata)
+      res = Net::HTTP.start(uri.hostname, uri.port, :use_ssl => true ) { |http| http.request(req) }
+      cookies = res.to_hash["set-cookie"].map { |cookie| cookie.split(";", 2).first }.join("; ")
+      puts cookies
+
+      unless res.is_a?(Net::HTTPOK)
+        @logger.warn("unexpected response when logging into HydroOttawa: #{res}")
+        return
+      end
+
+      hydro_login_response = JSON.parse(res.body)
+      unless hydro_login_response.dig("status") == "success"
+        @logger.warn("unexpected response when logging into HydroOttawa: #{hydro_login_response}")
+        return
+      end
+
+      @logger.info("fetching bidgely token from hydro")
+      uri = URI('https://account.hydroottawa.com/account/usage')
+      req = Net::HTTP::Get.new(uri, { 'User-Agent' => USERAGENT, 'Cookie' => cookies, 'Referer' => 'https://account.hydroottawa.com/' })
+      res = Net::HTTP.start(uri.hostname, uri.port, :use_ssl => true ) { |http| http.request(req) }
+      # cookies = res.to_hash["set-cookie"].map { |cookie| cookie.split(";",2).first }.join("; ")
+
+      puts res.class
+      #puts res.to_hash.inspect
+      puts res.body
+      raise "exit"
+    end
+
+    def login_to_bidgely(sso_token = @sso_token)
       uri = URI("https://usage.hydroottawa.com/api/v1/sso/dashboard")
-      @logger.info("logging in")
+      @logger.info("logging in to bidgely using hydro token")
       req = Net::HTTP::Post.new(uri, { 'User-Agent' => USERAGENT })
       req.form_data = { 'sessionToken' => sso_token }
       res = Net::HTTP.start(uri.hostname, uri.port, :use_ssl => true ) { |http| http.request(req) }
@@ -80,6 +141,10 @@ module Hydrofetch
         )
         relevant.merge(tariff: data.dig("touDetails", "touRrcMap").keys.first)
       end
+    end
+
+    def loginradius_url
+      "https://api.loginradius.com/identity/v2/auth/login?apiKey=d842e884-2dfb-4c8f-a971-f9eacf8e9f54&loginUrl=&emailTemplate=Verification%20English&verificationUrl=https://account.hydroottawa.com/login"
     end
 
     def report_url(uuid, token)
