@@ -11,9 +11,9 @@ source "https://rubygems.org"
 
 gem "activesupport"
 gem "nokogiri"
+gem "capybara"
 gem "selenium-webdriver"
 gem "selenium-devtools"
-gem "webdrivers"
 
 gem "pry"
 

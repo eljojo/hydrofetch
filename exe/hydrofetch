@@ -15,14 +15,19 @@ class HydrofetchWeb < Sinatra::Base
 
   before {
     env["rack.errors"] =  access_logger
+    content_type 'application/json'
   }
 
   get('/') do
+    JSON.pretty_generate(scraper.one_day_ago)
+  end
+
+  get('/report') do
     JSON.pretty_generate(scraper.report)
   end
 end
 if ENV["APP_ENV"] == "production"
   HydrofetchWeb.run!(port: 8080) if HydrofetchWeb.app_file == $0
 else
-  puts JSON.pretty_generate(scraper.report)
+  puts JSON.pretty_generate(scraper.one_day_ago)
 end

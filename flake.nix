@@ -1,5 +1,5 @@
 {
-  description = "The contents of https://thewagner.net";
+  description = "web service that scrapes hydro";
 
   inputs.nixpkgs.url = "nixpkgs/nixos-unstable";
   inputs.flake-utils.url = "github:numtide/flake-utils";
