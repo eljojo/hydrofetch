@@ -52,6 +52,8 @@ module Hydrofetch
     end
 
     def report
+      Time.zone = 'America/Toronto' # UGH
+
       return @last_report if @last_report && @last_report_expires > Time.zone.now
 
       @last_report_expires = Time.zone.now.end_of_day
