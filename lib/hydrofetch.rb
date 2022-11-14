@@ -56,7 +56,8 @@ module Hydrofetch
 
       return @last_report if @last_report && @last_report_expires > Time.zone.now
 
-      @last_report_expires = Time.zone.now.end_of_day
+      # @last_report_expires = Time.zone.now.end_of_day
+      @last_report_expires = 3.hours.from_now
       @last_report = fetch_report! || raise("couldn't fetch report!")
     rescue => e
       logger.warn("failed to get report (#{e.message}), will try in the future...")
