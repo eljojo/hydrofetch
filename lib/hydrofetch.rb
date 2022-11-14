@@ -44,8 +44,9 @@ module Hydrofetch
 
     def one_day_ago
       return unless report
-      interval_start = 1.day.ago.beginning_of_hour
-      report.find {|re| re["intervalStart"] >= interval_start.to_i }
+      # written this way so it fallsback to yesterday's data in case stale
+      time_start = Time.now.beginning_of_hour.strftime('%H:%M:%S')
+      report.find {|re| re["intervalStartDate"].include?(time_start) }
     end
 
     def report
@@ -56,7 +57,7 @@ module Hydrofetch
     rescue => e
       logger.warn("failed to get report (#{e.message}), will try in the future...")
       @last_report_expires = nil
-      @last_report = nil
+      @last_report
     end
 
     def fetch_report!
