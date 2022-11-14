@@ -165,10 +165,14 @@ module Hydrofetch
       end
 
       parsed_response.dig("payload", "usageChartDataList").map do |data|
-        relevant = data.slice(
-          "intervalStart", "intervalEnd", "intervalStartDate", "intervalEndDate", "cost", "consumption", "temperature"
+        relevant = data.slice("intervalStart", "intervalEnd", "intervalStartDate", "intervalEndDate", "temperature")
+        tariff = data.dig("touDetails", "touRrcMap").keys.first
+        relevant.merge(
+          tariff_name: tariff,
+          tariff_cost: data.dig("touDetails", "touRrcMap", tariff, "max"),
+          interval_cost: data["cost"],
+          consumed_kwh: data[ "consumption"]
         )
-        relevant.merge(tariff: data.dig("touDetails", "touRrcMap").keys.first)
       end
     end
 
