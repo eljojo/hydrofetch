@@ -60,7 +60,7 @@ module Hydrofetch
       @last_report = fetch_report! || raise("couldn't fetch report!")
     rescue => e
       logger.warn("failed to get report (#{e.message}), will try in the future...")
-      @last_report_expires = nil
+      @last_report_expires = 1.minute.from_now
       @last_report
     end
 
