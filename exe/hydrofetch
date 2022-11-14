@@ -22,12 +22,12 @@ class HydrofetchWeb < Sinatra::Base
   get('/') do
     next unless (result = $scraper.one_day_ago)
 
-    # here we do some weird stuff
-    # consumed_kwh records the total energy used in a given time range,
-    # but the the idea is to have a number that goes up as the hour goes by
-    # so we multiply the consumption by the proportion of the passed hour
-    # but since these are really small numbers, we wanna make sure the total is recorded entirely
-    # so we instead max out 5 minutes before the end of the hour (hence 3300)
+    # here we do some weird stuff:
+    # consumed_kwh records the total energy used in an hourly interval,
+    # but charts look too static, so we want something slowly increasing.
+    # for this, we multiply the consumption by the proportion of the passed hour.
+    # caveat: since these are really small numbers, we wanna make sure the total is recorded entirely
+    # so we also max out 5 minutes before the end of the hour (hence 3300)
     hour_proportion = (Time.now.to_i % 3600) / 3300.0
     hour_proportion = 1 if hour_proportion > 1
     result[:consumed_kwh_proportional] = (result[:consumed_kwh] * hour_proportion).round(2)
