@@ -20,7 +20,10 @@ class HydrofetchWeb < Sinatra::Base
   }
 
   get('/') do
-    JSON.pretty_generate($scraper.one_day_ago)
+    next unless (result = $scraper.one_day_ago)
+    hour_proportion = (Time.now.to_i % 3600) / 3600.0
+    result[:consumed_kwh_proportional] = (result[:consumed_kwh] * hour_proportion).round(2)
+    JSON.pretty_generate(result)
   end
 
   get('/report') do
