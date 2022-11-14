@@ -37,7 +37,7 @@
           };
         };
 
-        buildGem = { }: pkgs.stdenv.mkDerivation {
+        hydrofetch = pkgs.stdenv.mkDerivation {
           name = "hydrofetch-${self.shortRev or "dirty"}";
 
           nativeBuildInputs = [ rubyEnv ];
@@ -71,7 +71,6 @@ EOF
           '';
         };
 
-        hydrofetch = buildGem { };
         # buildChromeBase = pkgs.dockerTools.buildImage {
         #   name = "chromebase";
         #   tag = revision;

@@ -16,6 +16,8 @@ require 'net/http'
 require 'pp'
 require 'cgi'
 
+Time.zone = 'America/Toronto'
+
 USERAGENT = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.1 Safari/605.1.15'
 
 ::Selenium::WebDriver::Chrome::Service.driver_path = %x(which chromedriver).strip
@@ -45,14 +47,14 @@ module Hydrofetch
     def one_day_ago
       return unless report
       # written this way so it fallsback to yesterday's data in case stale
-      time_start = Time.now.beginning_of_hour.strftime('%H:%M:%S')
+      time_start = Time.zone.now.beginning_of_hour.strftime('%H:%M:%S')
       report.find {|re| re["intervalStartDate"].include?(time_start) }
     end
 
     def report
-      return @last_report if @last_report && @last_report_expires > Time.now
+      return @last_report if @last_report && @last_report_expires > Time.zone.now
 
-      @last_report_expires = DateTime.now.end_of_day
+      @last_report_expires = Time.zone.now.end_of_day
       @last_report = fetch_report! || raise("couldn't fetch report!")
     rescue => e
       logger.warn("failed to get report (#{e.message}), will try in the future...")

@@ -11,6 +11,7 @@ class HydrofetchWeb < Sinatra::Base
 
   configure do
     use ::Rack::CommonLogger, access_logger
+    Time.zone = 'America/Toronto'
   end
 
   before {
