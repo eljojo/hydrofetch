@@ -56,8 +56,7 @@ module Hydrofetch
 
       return @last_report if @last_report && @last_report_expires > Time.zone.now
 
-      # @last_report_expires = Time.zone.now.end_of_day
-      @last_report_expires = 3.hours.from_now
+      @last_report_expires = 30.minutes.from_now
       @last_report = fetch_report! || raise("couldn't fetch report!")
     rescue => e
       logger.warn("failed to get report (#{e.message}), will try in the future...")
@@ -66,10 +65,16 @@ module Hydrofetch
     end
 
     def fetch_report!
+      if @api_token
+        logger.debug "using cached API token"
+        result = get_usage_report(@api_token) rescue nil
+        return result if result
+      end
+
       hydro_cookies = login || raise("failed to log into hydro")
       api_session_token = get_api_session_token(hydro_cookies) || raise("failed to get api_session_token")
-      api_token = get_api_token(api_session_token) || raise("failed to get api_token")
-      get_usage_report(api_token) || raise("failed to get report")
+      @api_token = get_api_token(api_session_token) || raise("failed to get api_token")
+      get_usage_report(@api_token) || raise("failed to get report")
     end
 
     private
