@@ -43,6 +43,31 @@ I, [2022-11-14T04:56:48.955995 #1]  INFO -- : fetching report
 172.17.0.1 - - [14/Nov/2022:04:56:49 +0000] "GET / HTTP/1.1" 200 234 10.4849
 ```
 
+The API also returns a field called `consumed_kwh_proportional` which slowly goes up throught the hour, maxing out five minutes before the end of each hour. It's [perfect](https://developers.home-assistant.io/blog/2021/08/16/state_class_total/) to use with Home Assistant and the [REST sensor](https://www.home-assistant.io/integrations/sensor.rest/) for [Energy Monitoring](https://www.home-assistant.io/blog/2021/08/04/home-energy-management/):
+
+```yaml
+sensor:
+  - platform: rest
+    name: hydroottawa
+    device_class: energy
+    state_class: total_increasing
+    unit_of_measurement: kWh
+    json_attributes:
+      - tariff_cost
+      - consumed_kwh
+      - tariff_name
+      - interval_cost
+    resource: https://hydrofetch.myserver
+    value_template: "{{ value_json.consumed_kwh_proportional }}"
+  - platform: template
+    sensors:
+      hydroottawa_tariff_cost:
+        friendly_name: "HydroOttawa: Tariff"
+        value_template: "{{ state_attr('sensor.hydroottawa', 'tariff_cost') }}"
+        device_class: monetary
+        unit_of_measurement: CAD/kWh
+```
+
 ## Development
 
 - `nix-shell --run zsh` to load dev shell with ruby and stuff
