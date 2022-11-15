@@ -43,7 +43,9 @@ I, [2022-11-14T04:56:48.955995 #1]  INFO -- : fetching report
 172.17.0.1 - - [14/Nov/2022:04:56:49 +0000] "GET / HTTP/1.1" 200 234 10.4849
 ```
 
-The API also returns a field called `consumed_kwh_proportional` which slowly goes up throught the hour, maxing out five minutes before the end of each hour. It's [perfect](https://developers.home-assistant.io/blog/2021/08/16/state_class_total/) to use with Home Assistant and the [REST sensor](https://www.home-assistant.io/integrations/sensor.rest/) for [Energy Monitoring](https://www.home-assistant.io/blog/2021/08/04/home-energy-management/):
+### Home Assistant
+
+The API returns a field called `consumed_kwh_proportional`, which slowly goes up throughout the hour. It's perfect to use with [Home Assistant](https://www.home-assistant.io) for [Energy Monitoring](https://www.home-assistant.io/blog/2021/08/04/home-energy-management/):
 
 ```yaml
 sensor:
@@ -67,6 +69,8 @@ sensor:
         device_class: monetary
         unit_of_measurement: CAD/kWh
 ```
+
+The field goes up slowly in order to work with the [RESTful sensor](https://www.home-assistant.io/integrations/sensor.rest/) and the [total_increasing](https://developers.home-assistant.io/blog/2021/08/16/state_class_total/) state class.
 
 ## Development
 
