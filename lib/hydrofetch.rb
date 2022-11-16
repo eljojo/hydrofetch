@@ -40,7 +40,8 @@ module Hydrofetch
     attr_reader :logger
 
     def initialize(username, password)
-      @logger = ::Logger.new($stdout, ::Logger::DEBUG)
+      @logger = Logger.new($stdout)
+      logger.level = Logger::INFO
       @username, @password = username, password
     end
 
@@ -57,7 +58,11 @@ module Hydrofetch
       return @last_report if @last_report && @last_report_expires > Time.zone.now
 
       @last_report_expires = 30.minutes.from_now
-      @last_report = fetch_report! || raise("couldn't fetch report!")
+      report = fetch_report! || raise("couldn't fetch report!")
+      if @last_report && report != @last_report
+        logger.info("API response has been updated")
+      end
+      @last_report = report
     rescue => e
       logger.warn("failed to get report (#{e.message}), will try in the future...")
       @last_report_expires = 1.minute.from_now
@@ -66,9 +71,9 @@ module Hydrofetch
 
     def fetch_report!
       if @api_token
-        logger.debug "using cached API token"
         result = get_usage_report(@api_token) rescue nil
         return result if result
+        logger.info "couldn't reuse cached API token, will try logging in again..."
       end
 
       hydro_cookies = login || raise("failed to log into hydro")
@@ -106,6 +111,7 @@ module Hydrofetch
 
       cookies
     rescue => e
+      logger.info(e.inspect)
       logger.debug Capybara.current_session.html
       raise(e)
     ensure
@@ -172,7 +178,7 @@ module Hydrofetch
         return
       end
 
-      parsed_response.dig("payload", "usageChartDataList").map do |data|
+      report = parsed_response.dig("payload", "usageChartDataList").map do |data|
         relevant = data.slice("intervalStart", "intervalEnd", "intervalStartDate", "intervalEndDate", "temperature")
         tariff = data.dig("touDetails", "touRrcMap").keys.first
         relevant.merge(
@@ -182,6 +188,7 @@ module Hydrofetch
           consumed_kwh: data[ "consumption"]
         )
       end
+      report.freeze
     end
 
     def report_url(api_token)

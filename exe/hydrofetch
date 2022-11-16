@@ -7,10 +7,7 @@ require 'sinatra/base'
 $scraper = Hydrofetch::Scraper.new(ENV["HYDRO_USER"], ENV["HYDRO_PASS"])
 
 class HydrofetchWeb < Sinatra::Base
-  access_logger = ::Logger.new($stdout)
-
   configure do
-    use ::Rack::CommonLogger, access_logger
     Time.zone = 'America/Toronto'
   end
 
@@ -20,7 +17,7 @@ class HydrofetchWeb < Sinatra::Base
   }
 
   get('/') do
-    next unless (result = $scraper.one_day_ago)
+    next unless (result = $scraper.one_day_ago.dup)
 
     # here we do some weird stuff:
     # consumed_kwh records the total energy used in an hourly interval,
