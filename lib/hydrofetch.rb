@@ -108,6 +108,9 @@ module Hydrofetch
     rescue => e
       logger.debug Capybara.current_session.html
       raise(e)
+    ensure
+      logger.debug "closing browser"
+      Capybara.current_session.quit
     end
 
     def get_api_session_token(cookies)
