@@ -57,11 +57,11 @@ module Hydrofetch
 
       return @last_report if @last_report && @last_report_expires > Time.zone.now
 
-      @last_report_expires = 30.minutes.from_now
       report = fetch_report! || raise("couldn't fetch report!")
       if @last_report && report != @last_report
         logger.info("API response has been updated")
       end
+      @last_report_expires = Time.now.end_of_hour
       @last_report = report
     rescue => e
       logger.warn("failed to get report (#{e.message}), will try in the future...")
